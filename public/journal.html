@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journaly ✨ Journal</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="journal-page">
+      <div class="journal-header">
+        <button
+          class="back-btn"
+          onclick="window.location.href='dashboard.html'"
+        >
+          ← BACK
+        </button>
+        <span class="journal-title">🌙 MY JOURNAL</span>
+        <span class="coins-display">🪙 <span id="coinDisplay">0</span></span>
+      </div>
+
+      <div class="chat-box" id="chatBox">
+        <div class="message luna">
+          <img
+            src="images/luna-wave.png"
+            class="message-avatar luna-msg-img"
+            id="lunaWelcomeImg"
+            alt="Luna"
+          />
+          <div class="message-bubble" id="welcomeMessage">Loading... ✨</div>
+        </div>
+      </div>
+
+      <!-- PROMPT CHIPS -->
+      <div class="prompt-chips" id="promptChips">
+        <p class="prompt-label">✨ Luna's prompts for today:</p>
+        <div class="chips-row" id="chipsRow"></div>
+      </div>
+
+      <div class="input-area">
+        <textarea
+          id="userInput"
+          placeholder="write anything... your thoughts, feelings, dreams ✨"
+          rows="1"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="pixel-btn pixel-btn-purple" onclick="sendMessage()">
+          SEND ✨
+        </button>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      // BACKGROUND
+      const canvas = document.getElementById("bgCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;";
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      const hour = new Date().getHours();
+      const isDay = hour >= 6 && hour < 19;
+      const isSunset = hour >= 17 && hour < 20;
+      const stars = Array.from({ length: 120 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 1.5 + 0.5,
+        speed: Math.random() * 0.002 + 0.001,
+        phase: Math.random() * Math.PI * 2,
+      }));
+      function drawBg(t) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (isDay) {
+          g.addColorStop(0, "#1a1a4e");
+          g.addColorStop(1, "#2d2b69");
+        } else if (isSunset) {
+          g.addColorStop(0, "#0d0d2b");
+          g.addColorStop(0.5, "#4a1560");
+          g.addColorStop(1, "#c2410c");
+        } else {
+          g.addColorStop(0, "#0d0d2b");
+          g.addColorStop(1, "#131340");
+        }
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!isDay) {
+          stars.forEach((s) => {
+            const op = 0.4 + 0.6 * Math.sin(t * s.speed * 1000 + s.phase);
+            ctx.beginPath();
+            ctx.arc(
+              s.x * canvas.width,
+              s.y * canvas.height,
+              s.r,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle = `rgba(255,255,255,${op})`;
+            ctx.fill();
+          });
+        }
+        requestAnimationFrame(drawBg);
+      }
+      requestAnimationFrame(drawBg);
+
+      const userData = getUser();
+      if (!userData) window.location.href = "index.html";
+
+      document.getElementById("coinDisplay").textContent = userData.coins;
+
+      const today = new Date().toDateString();
+      const journaledToday = userData.lastJournal === today;
+
+      // LUNA VOICE BANK — welcome messages
+      let welcomeText, welcomeImg;
+      if (journaledToday) {
+        welcomeText = `You already journaled today ${userData.name} and I am cheering for you ✨ Want to add anything else to today's entry? 🌙`;
+        welcomeImg = "images/luna-celebrate.png";
+      } else if (userData.streak >= 3) {
+        welcomeText = `${userData.name}!! Day ${
+          userData.streak + 1
+        } of your streak! I believe in you so much ✨ What's on your heart today? 🌙`;
+        welcomeImg = "images/luna-excited.png";
+      } else {
+        const msgs = [
+          `Hey ${userData.name} ✨ This is your safe space. Write whatever is on your heart, I'm listening 🌙`,
+          `Welcome to your journal ${userData.name} ✨ No rules, no judgment. Just you and your thoughts 🌙`,
+          `Hi ${userData.name}!! Even a single sentence is beautiful. Start anywhere ✨🌙`,
+        ];
+        welcomeText = msgs[Math.floor(Math.random() * msgs.length)];
+        welcomeImg = "images/luna-wave.png";
+      }
+      document.getElementById("welcomeMessage").textContent = welcomeText;
+      document.getElementById("lunaWelcomeImg").src = welcomeImg;
+
+      // LUNA PROMPTS
+      const prompts = [
+        "What made you smile today, even just a little?",
+        "What's one thing you're carrying that you need to put down?",
+        "Describe how your body feels right now in 3 words.",
+        "What would you tell your past self from a month ago?",
+        "What are you grateful for that you haven't said out loud?",
+        "What's something you're avoiding and why?",
+        "If today had a colour, what would it be and why?",
+        "What did you need today that you didn't get?",
+        "What is one thing you're proud of this week, big or small?",
+        "If Luna could give you a hug right now, what would you want her to say?",
+      ];
+      const shuffled = prompts.sort(() => 0.5 - Math.random()).slice(0, 3);
+      const chipsRow = document.getElementById("chipsRow");
+      shuffled.forEach((p) => {
+        const chip = document.createElement("button");
+        chip.className = "prompt-chip";
+        chip.textContent = p;
+        chip.onclick = () => {
+          document.getElementById("userInput").value = p;
+          autoResize(document.getElementById("userInput"));
+          document.getElementById("promptChips").style.display = "none";
+        };
+        chipsRow.appendChild(chip);
+      });
+
+      function autoResize(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+      }
+
+      function getLunaAvatar(mood = "default") {
+        const map = {
+          think: "images/luna-think.png",
+          celebrate: "images/luna-celebrate.png",
+          sad: "images/luna_sad.png",
+          excited: "images/luna-excited.png",
+          default: "images/luna-regular.png",
+        };
+        return map[mood] || map.default;
+      }
+
+      async function sendMessage() {
+        const input = document.getElementById("userInput");
+        const chatBox = document.getElementById("chatBox");
+        const userMessage = input.value.trim();
+        if (!userMessage) return;
+
+        document.getElementById("promptChips").style.display = "none";
+
+        chatBox.innerHTML += `
+          <div class="message user">
+            <div class="message-bubble">${userMessage.replace(
+              /</g,
+              "&lt;"
+            )}</div>
+            <div class="user-avatar">✏️</div>
+          </div>`;
+        input.value = "";
+        input.style.height = "auto";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Thinking with luna-think image
+        chatBox.innerHTML += `
+          <div class="message luna" id="thinking">
+            <img src="images/luna-think.png" class="message-avatar luna-msg-img" alt="Luna thinking" />
+            <div class="message-bubble">
+              <div class="thinking"><span></span><span></span><span></span></div>
+            </div>
+          </div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+          const response = await fetch("/journal", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: userMessage,
+              userName: userData.name,
+            }),
+          });
+          const data = await response.json();
+          document.getElementById("thinking").remove();
+
+          // Pick luna image based on sentiment hints
+          const reply = data.reply || "";
+          let mood = "default";
+          if (/proud|amazing|wow|great|love|wonderful|celebrate/i.test(reply))
+            mood = "celebrate";
+          else if (/sorry|hard|tough|difficult|pain|hurt|sad/i.test(reply))
+            mood = "sad";
+          else if (/excited|can't wait|thrilled/i.test(reply)) mood = "excited";
+
+          chatBox.innerHTML += `
+            <div class="message luna">
+              <img src="${getLunaAvatar(
+                mood
+              )}" class="message-avatar luna-msg-img" alt="Luna" />
+              <div class="message-bubble">${reply.replace(/</g, "&lt;")}</div>
+            </div>`;
+
+          awardCoins(userMessage, userData);
+        } catch (error) {
+          document.getElementById("thinking").remove();
+          chatBox.innerHTML += `
+            <div class="message luna">
+              <img src="images/luna_sad.png" class="message-avatar luna-msg-img" alt="Luna" />
+              <div class="message-bubble">Something went a little sideways ✨ Try again in a sec 🌙</div>
+            </div>`;
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function awardCoins(message, userData) {
+        const chatBox = document.getElementById("chatBox");
+        let coinsEarned = 10;
+        let reason = "+10 🪙 entry coins";
+
+        if (message.split(" ").length >= 100) {
+          coinsEarned += 5;
+          reason = "+15 🪙 bonus for that detailed entry!";
+        }
+
+        userData.coins += coinsEarned;
+
+        const today = new Date().toDateString();
+        if (userData.lastJournal !== today) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          if (userData.lastJournal === yesterday.toDateString()) {
+            userData.streak += 1;
+            coinsEarned += 5;
+            reason += " +5 🔥 streak bonus!";
+          } else {
+            userData.streak = 1;
+          }
+          userData.lastJournal = today;
+        }
+
+        saveUser(userData);
+        document.getElementById("coinDisplay").textContent = userData.coins;
+
+        chatBox.innerHTML += `<div class="coin-reward">${reason}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      document
+        .getElementById("userInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+    </script>
+  </body>
+</html>

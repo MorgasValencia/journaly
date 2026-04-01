@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journaly ✨ Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="dashboard-page">
+      <div class="dashboard-header">
+        <div>
+          <div class="greeting">
+            <div>HELLO,</div>
+            <div><span id="userName">friend</span> ✨</div>
+          </div>
+          <div class="date-display" id="dateDisplay"></div>
+        </div>
+        <div class="luna-container">
+          <img
+            src="./images/luna-regular.png"
+            class="luna-small"
+            id="dashLuna"
+            alt="Luna"
+          />
+        </div>
+        <button class="logout-btn" onclick="logout()">LOGOUT</button>
+      </div>
+
+      <!-- JOURNALED TODAY BANNER -->
+      <div id="journaledBanner" class="journaled-banner" style="display: none">
+        <img
+          src="images/luna-celebrate.png"
+          class="banner-luna"
+          alt="Luna celebrate"
+        />
+        <span
+          >You journaled today! Your streak is safe 🔥 Come back tomorrow!</span
+        >
+      </div>
+
+      <div class="luna-dashboard pixel-border">
+        <img
+          src="images/luna-wave.png"
+          class="luna-small"
+          id="lunaMessageImg"
+          alt="Luna"
+        />
+        <p class="luna-message" id="lunaMessage">Loading your magic... ✨</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card pixel-border">
+          <span class="stat-icon">🪙</span>
+          <span class="stat-value" id="coinCount">0</span>
+          <span class="stat-label">MindCoins</span>
+        </div>
+        <div class="stat-card pixel-border">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-value" id="streakCount">0</span>
+          <span class="stat-label">Day Streak</span>
+        </div>
+      </div>
+
+      <div class="level-card pixel-border">
+        <div class="level-header">
+          <span class="level-title">CURRENT LEVEL</span>
+          <span class="level-name" id="levelName">🌱 Seedling</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text" id="progressText">
+          0 / 3 days to next level
+        </div>
+      </div>
+
+      <button
+        class="pixel-btn"
+        onclick="window.location.href='journal.html'"
+        style="width: 100%; margin-bottom: 12px"
+      >
+        🌙 OPEN MY JOURNAL
+      </button>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      // DAY/NIGHT BACKGROUND
+      const canvas = document.getElementById("bgCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;";
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      const hour = new Date().getHours();
+      const isDay = hour >= 6 && hour < 19;
+      const isSunset = hour >= 17 && hour < 20;
+      const stars = Array.from({ length: 120 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 1.5 + 0.5,
+        speed: Math.random() * 0.002 + 0.001,
+        phase: Math.random() * Math.PI * 2,
+      }));
+
+      function drawBg(t) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (isDay) {
+          g.addColorStop(0, "#1a1a4e");
+          g.addColorStop(1, "#2d2b69");
+        } else if (isSunset) {
+          g.addColorStop(0, "#0d0d2b");
+          g.addColorStop(0.5, "#4a1560");
+          g.addColorStop(1, "#c2410c");
+        } else {
+          g.addColorStop(0, "#0d0d2b");
+          g.addColorStop(1, "#131340");
+        }
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!isDay) {
+          stars.forEach((s) => {
+            const op = 0.4 + 0.6 * Math.sin(t * s.speed * 1000 + s.phase);
+            ctx.beginPath();
+            ctx.arc(
+              s.x * canvas.width,
+              s.y * canvas.height,
+              s.r,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle = `rgba(255,255,255,${op})`;
+            ctx.fill();
+          });
+        }
+        requestAnimationFrame(drawBg);
+      }
+      requestAnimationFrame(drawBg);
+
+      // LOAD USER
+      const userData = getUser();
+      if (!userData) {
+        window.location.href = "index.html";
+      }
+
+      // DATE DISPLAY
+      const now = new Date();
+      document.getElementById("dateDisplay").textContent =
+        now.toLocaleDateString("en-ZA", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        });
+
+      document.getElementById("userName").textContent =
+        userData.name.toUpperCase();
+      document.getElementById("coinCount").textContent = userData.coins;
+      document.getElementById("streakCount").textContent = userData.streak;
+
+      // JOURNALED TODAY CHECK
+      const today = now.toDateString();
+      const journaledToday = userData.lastJournal === today;
+      if (journaledToday) {
+        document.getElementById("journaledBanner").style.display = "flex";
+      }
+
+      // LEVEL SYSTEM
+      const levels = [
+        { name: "🌱 Seedling", days: 0, next: 3 },
+        { name: "🌿 Grower", days: 3, next: 7 },
+        { name: "🌳 Thriver", days: 7, next: 14 },
+        { name: "⭐ Flourisher", days: 14, next: 30 },
+        { name: "👑 Master", days: 30, next: 30 },
+      ];
+      function getLevel(streak) {
+        let c = levels[0];
+        for (let l of levels) {
+          if (streak >= l.days) c = l;
+        }
+        return c;
+      }
+      const currentLevel = getLevel(userData.streak);
+      document.getElementById("levelName").textContent = currentLevel.name;
+      const progress =
+        currentLevel.next > currentLevel.days
+          ? ((userData.streak - currentLevel.days) /
+              (currentLevel.next - currentLevel.days)) *
+            100
+          : 100;
+      document.getElementById("progressFill").style.width = `${Math.min(
+        progress,
+        100
+      )}%`;
+      document.getElementById("progressText").textContent =
+        userData.streak >= 30
+          ? "👑 Maximum level reached!"
+          : `${userData.streak} / ${currentLevel.next} days to next level`;
+
+      // LUNA VOICE BANK — situational messages
+      const lunaImg = document.getElementById("lunaMessageImg");
+      let lunaText, lunaImgSrc;
+
+      if (userData.isNewUser) {
+        lunaText = `So good to finally meet you ${userData.name}! ✨ This is your space, your story. Let's write the first page together 🌙`;
+        lunaImgSrc = "images/luna-excited.png";
+        userData.isNewUser = false;
+        saveUser(userData);
+      } else if (journaledToday) {
+        const msgs = [
+          `You already showed up today ${userData.name} and that is huge ✨ Your streak is safe, rest easy 🌙`,
+          `Look at you being consistent!! ${userData.name} you are actually doing this ✨🌙`,
+          `Today's entry is in the books ${userData.name} ✨ Tomorrow we go again 🌙`,
+        ];
+        lunaText = msgs[Math.floor(Math.random() * msgs.length)];
+        lunaImgSrc = "images/luna-celebrate.png";
+      } else if (userData.streak >= 7) {
+        const msgs = [
+          `${userData.name}!! ${userData.streak} days in a row?! You are literally unstoppable ✨🌙`,
+          `I am so proud of you ${userData.name} ✨ ${userData.streak} days strong and still showing up 🌙`,
+        ];
+        lunaText = msgs[Math.floor(Math.random() * msgs.length)];
+        lunaImgSrc = "images/luna-excited.png";
+      } else if (userData.streak === 0 && userData.lastJournal !== null) {
+        lunaText = `Hey ${userData.name}, no pressure okay ✨ Streaks can be restarted but the fact that you're here says everything 🌙`;
+        lunaImgSrc = "images/luna_sad.png";
+      } else {
+        const msgs = [
+          `Welcome back ${userData.name} ✨ Your journal is glowing and ready for you today 🌙`,
+          `${userData.name} I saved your favourite spot ✨ Ready when you are 🌙`,
+          `The stars aligned just for you today ${userData.name} ✨ Let's capture this moment 🌙`,
+        ];
+        lunaText = msgs[Math.floor(Math.random() * msgs.length)];
+        lunaImgSrc = "images/luna-wave.png";
+      }
+
+      document.getElementById("lunaMessage").textContent = lunaText;
+      lunaImg.src = lunaImgSrc;
+
+      function logout() {
+        window.location.href = "index.html";
+      }
+    </script>
+  </body>
+</html>

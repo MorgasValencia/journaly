@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journaly ✨</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="auth-page">
+      <div class="auth-card pixel-border">
+        <div class="auth-header">
+          <div class="luna-container">
+            <img
+              src="images/luna-wave.png"
+              class="luna-pixel"
+              id="lunaAuthImg"
+              alt="Luna"
+            />
+            <span class="luna-name">✨ LUNA ✨</span>
+          </div>
+          <h1 class="app-title">JOURNALY</h1>
+          <p class="app-subtitle">your magical journaling companion 🌙</p>
+        </div>
+
+        <div class="luna-speech" id="lunaGreeting">
+          Hiii!! I'm Luna, your journaling bestie ✨ I've been waiting for you!
+        </div>
+
+        <div class="auth-tabs">
+          <button
+            class="tab-btn active"
+            id="loginTab"
+            onclick="showTab('login')"
+          >
+            LOGIN
+          </button>
+          <button class="tab-btn" id="signupTab" onclick="showTab('signup')">
+            SIGN UP
+          </button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginForm" class="auth-form">
+          <div class="form-group">
+            <label>YOUR NAME</label>
+            <input
+              type="text"
+              id="loginName"
+              placeholder="what do I call you?"
+            />
+          </div>
+          <div class="form-group">
+            <label>PASSWORD</label>
+            <input
+              type="password"
+              id="loginPassword"
+              placeholder="your secret spell..."
+            />
+          </div>
+          <button
+            class="pixel-btn"
+            onclick="handleLogin()"
+            style="width: 100%; margin-top: 8px"
+          >
+            ✨ ENTER THE JOURNAL
+          </button>
+          <p id="loginError" class="form-error" style="display: none"></p>
+        </div>
+
+        <!-- SIGNUP FORM -->
+        <div id="signupForm" class="auth-form" style="display: none">
+          <div class="form-group">
+            <label>YOUR NAME</label>
+            <input
+              type="text"
+              id="signupName"
+              placeholder="what do I call you?"
+            />
+          </div>
+          <div class="form-group">
+            <label>PASSWORD</label>
+            <input
+              type="password"
+              id="signupPassword"
+              placeholder="create your secret spell..."
+              oninput="checkPasswordStrength(this.value)"
+            />
+            <div class="password-strength" id="strengthBar">
+              <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <p class="strength-text" id="strengthText"></p>
+          </div>
+          <div class="form-group">
+            <label>CONFIRM PASSWORD</label>
+            <input
+              type="password"
+              id="signupConfirm"
+              placeholder="one more time..."
+            />
+          </div>
+          <p class="password-hint">
+            Min 8 chars, 1 number, 1 special character
+          </p>
+          <button
+            class="pixel-btn"
+            onclick="handleSignup()"
+            style="width: 100%; margin-top: 8px"
+          >
+            🌱 START MY JOURNEY
+          </button>
+          <p id="signupError" class="form-error" style="display: none"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW USER TOUR OVERLAY -->
+    <div id="tourOverlay" class="tour-overlay" style="display: none">
+      <div class="tour-card pixel-border">
+        <img
+          src="images/luna-excited.png"
+          class="tour-luna"
+          alt="Luna excited"
+        />
+        <div id="tourContent"></div>
+        <div class="tour-dots" id="tourDots"></div>
+        <div class="tour-nav">
+          <button
+            class="pixel-btn pixel-btn-purple"
+            id="tourPrev"
+            onclick="tourStep(-1)"
+            style="display: none"
+          >
+            ← BACK
+          </button>
+          <button class="pixel-btn" id="tourNext" onclick="tourStep(1)">
+            NEXT →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // DAY/NIGHT DYNAMIC BACKGROUND
+      const canvas = document.getElementById("bgCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.style.position = "fixed";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.zIndex = "0";
+      canvas.style.pointerEvents = "none";
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      const hour = new Date().getHours();
+      const isDay = hour >= 6 && hour < 19;
+      const isSunset = hour >= 17 && hour < 20;
+
+      const stars = Array.from({ length: 120 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 1.5 + 0.5,
+        speed: Math.random() * 0.002 + 0.001,
+        phase: Math.random() * Math.PI * 2,
+      }));
+
+      function drawBackground(t) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let grad;
+        if (isDay) {
+          grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          grad.addColorStop(0, "#1a1a4e");
+          grad.addColorStop(1, "#2d2b69");
+        } else if (isSunset) {
+          grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          grad.addColorStop(0, "#0d0d2b");
+          grad.addColorStop(0.5, "#4a1560");
+          grad.addColorStop(1, "#c2410c");
+        } else {
+          grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          grad.addColorStop(0, "#0d0d2b");
+          grad.addColorStop(1, "#131340");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Stars
+        if (!isDay) {
+          stars.forEach((s) => {
+            const opacity = 0.4 + 0.6 * Math.sin(t * s.speed * 1000 + s.phase);
+            ctx.beginPath();
+            ctx.arc(
+              s.x * canvas.width,
+              s.y * canvas.height,
+              s.r,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+            ctx.fill();
+          });
+        }
+
+        // Pixel floating particles
+        const particleColors = isDay
+          ? ["rgba(196,181,253,0.4)", "rgba(134,239,172,0.3)"]
+          : ["rgba(196,181,253,0.3)", "rgba(251,191,36,0.2)"];
+        for (let i = 0; i < 8; i++) {
+          const x = (t * 30 * (i + 1) * 0.3) % canvas.width;
+          const y =
+            canvas.height * 0.2 + Math.sin(t * 0.5 + i) * canvas.height * 0.3;
+          ctx.fillStyle = particleColors[i % 2];
+          ctx.fillRect(x, y, 4, 4);
+        }
+
+        requestAnimationFrame(drawBackground);
+      }
+      requestAnimationFrame(drawBackground);
+
+      // LUNA GREETINGS
+      const existingUser = localStorage.getItem("journaly_user");
+      const greetings = existingUser
+        ? [
+            "Oh you're back!! I missed you so much ✨ Ready to make some magic today? 🌙",
+            "Welcome home, you beautiful soul ✨ Your journal kept a spot just for you 🌙",
+            "Hey hey hey!! You showed up again and that means everything ✨🌙",
+          ]
+        : [
+            "Hiii!! I'm Luna, your journaling bestie ✨ I've been waiting for you! 🌙",
+            "Oh wow a new face!! I'm Luna and I am SO excited to go on this journey with you ✨🌙",
+            "Welcome to Journaly ✨ This is your safe space and I'll be right here with you 🌙",
+          ];
+      document.getElementById("lunaGreeting").textContent =
+        greetings[Math.floor(Math.random() * greetings.length)];
+
+      // TABS
+      function showTab(tab) {
+        document
+          .getElementById("loginTab")
+          .classList.toggle("active", tab === "login");
+        document
+          .getElementById("signupTab")
+          .classList.toggle("active", tab === "signup");
+        document.getElementById("loginForm").style.display =
+          tab === "login" ? "flex" : "none";
+        document.getElementById("signupForm").style.display =
+          tab === "signup" ? "flex" : "none";
+        document.getElementById("lunaAuthImg").src =
+          tab === "signup" ? "images/luna-excited.png" : "images/luna-wave.png";
+      }
+
+      // PASSWORD STRENGTH
+      function checkPasswordStrength(val) {
+        const fill = document.getElementById("strengthFill");
+        const text = document.getElementById("strengthText");
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^a-zA-Z0-9]/.test(val)) score++;
+        if (val.length >= 12) score++;
+
+        const levels = [
+          { label: "too weak", color: "#ef4444", width: "25%" },
+          { label: "getting there", color: "#f97316", width: "50%" },
+          { label: "pretty good", color: "#eab308", width: "75%" },
+          { label: "strong spell!", color: "#86efac", width: "100%" },
+        ];
+        const l = levels[Math.max(0, score - 1)] || levels[0];
+        fill.style.width = val.length ? l.width : "0%";
+        fill.style.background = l.color;
+        text.textContent = val.length ? l.label : "";
+        text.style.color = l.color;
+      }
+
+      // SIGNUP
+      function handleSignup() {
+        const name = document.getElementById("signupName").value.trim();
+        const password = document.getElementById("signupPassword").value;
+        const confirm = document.getElementById("signupConfirm").value;
+        const err = document.getElementById("signupError");
+
+        if (!name || !password || !confirm) {
+          showError(err, "Fill in all the fields bestie ✨");
+          return;
+        }
+        if (password.length < 8) {
+          showError(err, "Password needs at least 8 characters 🌙");
+          return;
+        }
+        if (!/[0-9]/.test(password)) {
+          showError(err, "Add at least one number to your spell ✨");
+          return;
+        }
+        if (!/[^a-zA-Z0-9]/.test(password)) {
+          showError(
+            err,
+            "Add a special character (!@#$%...) to make it stronger 🌙"
+          );
+          return;
+        }
+        if (password !== confirm) {
+          showError(err, "Your spells don't match! Try again ✨");
+          return;
+        }
+
+        const userData = {
+          name,
+          password,
+          coins: 0,
+          streak: 0,
+          lastJournal: null,
+          level: "Seedling",
+          isNewUser: true,
+          joinDate: new Date().toDateString(),
+        };
+        localStorage.setItem("journaly_user", JSON.stringify(userData));
+        startTour();
+      }
+
+      // LOGIN
+      function handleLogin() {
+        const name = document.getElementById("loginName").value.trim();
+        const password = document.getElementById("loginPassword").value;
+        const err = document.getElementById("loginError");
+
+        if (!name || !password) {
+          showError(err, "Fill in all the fields bestie ✨");
+          return;
+        }
+        const userData = JSON.parse(localStorage.getItem("journaly_user"));
+        if (!userData) {
+          showError(err, "No account found! Sign up first 🌙");
+          return;
+        }
+        if (
+          userData.name.toLowerCase() !== name.toLowerCase() ||
+          userData.password !== password
+        ) {
+          showError(err, "Hmm that doesn't match! Try again ✨");
+          document.getElementById("lunaAuthImg").src = "images/luna_sad.png";
+          setTimeout(() => {
+            document.getElementById("lunaAuthImg").src = "images/luna-wave.png";
+          }, 2000);
+          return;
+        }
+        window.location.href = "dashboard.html";
+      }
+
+      function showError(el, msg) {
+        el.textContent = msg;
+        el.style.display = "block";
+        setTimeout(() => {
+          el.style.display = "none";
+        }, 4000);
+      }
+
+      // NEW USER TOUR
+      const tourSteps = [
+        {
+          title: "Welcome to Journaly! 🌙",
+          text: "I'm Luna, your journaling bestie. This is your magical safe space to pour out your thoughts, feelings, and dreams. No judgment, ever.",
+          img: "images/luna-excited.png",
+        },
+        {
+          title: "Earn MindCoins 🪙",
+          text: "Every time you journal, you earn MindCoins! Write more than 100 words and you get a bonus. Keep your streak going for even more rewards.",
+          img: "images/luna-celebrate.png",
+        },
+        {
+          title: "Level Up! ⭐",
+          text: "The more you journal, the higher you level up. From Seedling all the way to Master. Your journey is tracked and celebrated every step of the way.",
+          img: "images/luna-wave.png",
+        },
+        {
+          title: "I'm always here 💜",
+          text: "Whenever you're ready to write, just open your journal. I'll have a prompt waiting for you. Ready to begin your adventure?",
+          img: "images/luna-wave.png",
+        },
+      ];
+      let tourIndex = 0;
+
+      function startTour() {
+        document.getElementById("tourOverlay").style.display = "flex";
+        renderTourStep();
+      }
+
+      function renderTourStep() {
+        const step = tourSteps[tourIndex];
+        document.getElementById("tourContent").innerHTML = `
+          <h3 class="tour-title">${step.title}</h3>
+          <p class="tour-text">${step.text}</p>`;
+        document.querySelector(".tour-luna").src = step.img;
+        document.getElementById("tourPrev").style.display =
+          tourIndex > 0 ? "block" : "none";
+        document.getElementById("tourNext").textContent =
+          tourIndex === tourSteps.length - 1 ? "LET'S GO! ✨" : "NEXT →";
+
+        const dots = document.getElementById("tourDots");
+        dots.innerHTML = tourSteps
+          .map(
+            (_, i) =>
+              `<span class="tour-dot ${
+                i === tourIndex ? "active" : ""
+              }"></span>`
+          )
+          .join("");
+      }
+
+      function tourStep(dir) {
+        tourIndex += dir;
+        if (tourIndex >= tourSteps.length) {
+          document.getElementById("tourOverlay").style.display = "none";
+          window.location.href = "dashboard.html";
+        } else {
+          renderTourStep();
+        }
+      }
+    </script>
+  </body>
+</html>
